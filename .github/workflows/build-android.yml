@@ -1,0 +1,56 @@
+name: build-android
+on:
+  workflow_dispatch:
+
+jobs:
+  build_android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node  
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Set up JDK environment
+        uses: actions/setup-java@v3
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          # check-latest: true
+          cache: "gradle"
+
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v1
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+          
+      - name: Run NPM or Yarn Install
+        run: |
+          npm i -g corepack  
+          if [ -f yarn.lock ]; then yarn install; else npm install; fi
+
+      - name: Generate Keystores signing key for app-signin
+        run: |
+          cd ./android/app && keytool -genkey -v -keystore my-upload-key.keystore \
+          -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000 \
+          -storepass "${{ secrets.SIGNING_KEY_PASS }}" -keypass "${{ secrets.SIGNING_KEY_PASS }}" \
+          -dname "CN=GT, OU=IT, O=GT, L=PN, S=MH, C=IN"    
+
+      # - name: Build application
+      #   run: cd ./android && ./gradlew test && ./gradlew clean && ./gradlew assembleRelease && ./gradlew bundleRelease
+
+      - name: Build application with fastlane
+        run: cd ./android && bundle exec fastlane build
+
+      - name: Upload 'assemble=apk' & 'bundle=aab' build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: apk_bundle_key
+          path: |
+            ./android/app/build/outputs/apk/release/*.apk
+            ./android/app/build/outputs/bundle/release/*.aab
+            ./android/app/*.keystore
+            # retention-days: 3 // default=90 days

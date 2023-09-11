@@ -1,0 +1,65 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+update_fastlane
+# sudo bundle exec fastlane 
+
+default_platform(:android)
+platform :android do
+  desc "Runs all the tests"
+  lane :test do
+    gradle(task: "test")
+  end
+
+  desc "Delete any existing assemble/bundle build directory"
+  lane :clean do
+    gradle(task: "clean")
+  end
+
+  desc "Submit new 'assemble=apk' & 'bundle=aab' Release Build"
+  lane :release do  
+    # store_password = prompt(text: "Signing Store Password: ", secure_text: true)
+    # key_password = prompt(text: "Alias Key Password: ", secure_text: true)
+    # releaseFilePath = File.join(Dir.pwd, "../app", "my-upload-key.keystore")
+    gradle(
+      tasks: ["assembleRelease", "bundleRelease"],
+      print_command: false,
+      # properties: {
+      #   "android.injected.signing.store.file" => releaseFilePath,
+      #   "android.injected.signing.store.password" => store_password,
+      #   "android.injected.signing.key.alias" => "my-key-alias",
+      #   "android.injected.signing.key.password" => key_password,
+      # }
+      properties: {
+        "android.injected.signing.store.file" => File.join(Dir.pwd, "../app", "my-upload-key.keystore"),
+        # "android.injected.signing.store.file" => "/home/suraj/applications/AwesomeProject/android/app/my-upload-key.keystore",
+        "android.injected.signing.store.password" => "redhat",
+        "android.injected.signing.key.alias" => "my-key-alias",
+        "android.injected.signing.key.password" => "redhat",
+      }
+    )
+  end
+
+  # desc "Deploy a new version to the Google Play"
+  # lane :deploy do
+  #   gradle(task: "clean assembleRelease")
+  #   upload_to_play_store
+  # end
+
+  desc "Runs all lane's"
+  lane :build do
+    test
+    clean
+    release
+  end
+end
